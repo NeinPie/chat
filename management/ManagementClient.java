@@ -73,6 +73,8 @@ public class ManagementClient {
                 } else if (cmd.startsWith("/delip ")) {
                     send(MngType.DELETE_IP, cmd.substring(7));
                 }
+                //TODO: Logout
+                //TODO: Client kennt seinen Namen => Nicht übergeben
 
             } catch (IOException e) {
                 System.out.println("Verbindung verloren.");

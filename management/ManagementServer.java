@@ -45,6 +45,7 @@ public class ManagementServer {
                 switch (msg.getType()) {
 
                     case REGISTRIEREN -> handleRegister(msg, out);
+                        //TODO: txt File mit Username + Passwort
                     case ANMELDUNG -> {
                         registeredAs = handleLogin(msg, out, s);
                      }
