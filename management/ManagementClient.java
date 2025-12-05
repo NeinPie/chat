@@ -14,6 +14,7 @@ public class ManagementClient {
     private final String host;
     private final int port;
 
+    private String name;
     private Socket socket;
     private volatile boolean running = true;
 
@@ -70,10 +71,15 @@ public class ManagementClient {
                 } else if (cmd.startsWith("/close ")) {
                     send(MngType.CLOSE_CHAT, cmd.substring(7));
 
-                } else if (cmd.startsWith("/delip ")) {
-                    send(MngType.DELETE_IP, cmd.substring(7));
+                } else if (cmd.startsWith("/logout ")) {
+                    String[] p = cmd.split(" ");
+                    if(name != null){
+                        send(MngType.ABMELDUNG, name);
+                    }
+                    else{
+                        System.out.println("Du bist momentan nicht angemeldet");
+                    }
                 }
-                //TODO: Logout
                 //TODO: Client kennt seinen Namen => Nicht übergeben
 
             } catch (IOException e) {
@@ -101,6 +107,12 @@ public class ManagementClient {
                 if (len == -1) break;
 
                 MngMessage msg = MngCodec.decode(buf, len);
+                if(msg.getType().equals(MngType.ANMELDUNG_OK)){
+                    String [] msgdata = msg.getData().split(":");
+                    name = msgdata[1];
+                } else if(msg.getType().equals(MngType.ABMELDUNG_OK){
+                    name = null;
+                }
 
                 System.out.println("\nSERVER → " + msg.getType() +
                         " | " + msg.getData());

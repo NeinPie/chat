@@ -55,6 +55,7 @@ public class ManagementServer {
                     case SEND_MESSAGE -> handleSendMessage(msg);
                     case CLOSE_CHAT -> handleCloseChat(msg);
                     case DELETE_IP -> handleDeleteIp(msg);
+                    case ABMELDUNG -> handleLogout()
                     default -> {
                      }
                 }
@@ -101,10 +102,24 @@ public class ManagementServer {
         }
 
         activeClients.put(user, clientSocket);
-        out.write(MngCodec.encode(new MngSimpleMessage(MngType.ANMELDUNG_OK, "Login ok")));
+        out.write(MngCodec.encode(new MngSimpleMessage(MngType.ANMELDUNG_OK, "Login ok:" + user)));
         out.flush();
         System.out.println("User logged in: " + user);
         return user;
+    }
+
+    private void handleLogout(MngMessage msg, OutputStream out, Socket clientSocket) throws Exception {
+        String user = msg.getData();
+        if(activeClients.containsKey(user)){
+            activeClients.remove(user);
+            out.write(MngCodec.encode(new MngSimpleMessage(MngType.ABMELDUNG_OK, "Logout ok:")));
+            out.flush();
+            System.out.println("User logged out: " + user);
+        }
+        else{
+            out.write(MngCodec.encode(new MngSimpleMessage(MngType.ABMELDUNG_NOK, "Logout fehlgeschlagen")));
+            out.flush();
+        }
     }
 
     private void handleChatRequest(MngMessage msg) throws Exception {
