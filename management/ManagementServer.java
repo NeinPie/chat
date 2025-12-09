@@ -1,5 +1,5 @@
 package management;
-
+import de.hsrm.mi.prog2.TextIO;
 import management.message.*;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -18,6 +18,7 @@ public class ManagementServer {
     }
 
     public void start() throws Exception {
+        readTXT();
         System.out.println("Management Server gestartet auf Port " + port);
 
          try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -27,6 +28,34 @@ public class ManagementServer {
                 t.start();
             }
         }
+    }
+
+    private void readTXT(){
+
+        List<String> Register = null;
+			try {
+				Register = TextIO.read(new File("register.txt"));
+				for(int o = 0; o < Register.size(); o++) {
+					line = Register.get(o);
+					String[] parts = line.split(":", 2);
+					String user = parts[0];
+                    String pass = parts.length > 1 ? parts[1] : "";
+
+                    registeredUsers.put(user, pass);
+				 }
+			}catch (IOException e) {	//Catcht IOException
+				 e.printStackTrace();
+			}
+    }
+
+    private void writeTXT(String user, String pass){
+        TextWriter tw = new StreamWriter("register.txt");
+
+        // write a line of text to the file
+        tw.WriteLine(user + ":" + pass);
+
+        // close the stream
+        tw.Close();
     }
 
     private void handleClient(Socket clientSocket) {
@@ -82,7 +111,7 @@ public class ManagementServer {
             out.flush();
             return;
         }
-
+        writeTXT(user, pass);
         registeredUsers.put(user, pass);
         out.write(MngCodec.encode(new MngSimpleMessage(MngType.REGISTRIEREN_OK, "Registriert")));
         out.flush();
