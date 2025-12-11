@@ -1,6 +1,7 @@
 {
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
-        "d:\\studium\\Programmieren 1\\Prog1Util\\Prog1Util.jar"
+        "d:\\studium\\Programmieren 1\\Prog1Util\\Prog1Util.jar",
+        "TextIO.jar"
     ]
 }

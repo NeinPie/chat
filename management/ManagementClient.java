@@ -110,7 +110,7 @@ public class ManagementClient {
                 if(msg.getType().equals(MngType.ANMELDUNG_OK)){
                     String [] msgdata = msg.getData().split(":");
                     name = msgdata[1];
-                } else if(msg.getType().equals(MngType.ABMELDUNG_OK){
+                } else if(msg.getType().equals(MngType.ABMELDUNG_OK)){
                     name = null;
                 }
 

@@ -1,10 +1,14 @@
 package management;
 import de.hsrm.mi.prog2.TextIO;
 import management.message.*;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ManagementServer {
@@ -36,7 +40,7 @@ public class ManagementServer {
 			try {
 				Register = TextIO.read(new File("register.txt"));
 				for(int o = 0; o < Register.size(); o++) {
-					line = Register.get(o);
+					String line = Register.get(o);
 					String[] parts = line.split(":", 2);
 					String user = parts[0];
                     String pass = parts.length > 1 ? parts[1] : "";
@@ -84,7 +88,7 @@ public class ManagementServer {
                     case SEND_MESSAGE -> handleSendMessage(msg);
                     case CLOSE_CHAT -> handleCloseChat(msg);
                     case DELETE_IP -> handleDeleteIp(msg);
-                    case ABMELDUNG -> handleLogout()
+                    case ABMELDUNG -> handleLogout(msg, out, clientSocket);
                     default -> {
                      }
                 }
