@@ -2,10 +2,13 @@ package management;
 import de.hsrm.mi.prog2.TextIO;
 import management.message.*;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
@@ -53,13 +56,15 @@ public class ManagementServer {
     }
 
     private void writeTXT(String user, String pass){
-        TextWriter tw = new StreamWriter("register.txt");
+        
+        try (BufferedWriter writer = new BufferedWriter(
+                 new OutputStreamWriter(new FileOutputStream("register.txt"), "UTF-8"))) {
+            writer.write(user + ":" + pass);
+            writer.newLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        // write a line of text to the file
-        tw.WriteLine(user + ":" + pass);
-
-        // close the stream
-        tw.Close();
     }
 
     private void handleClient(Socket clientSocket) {
