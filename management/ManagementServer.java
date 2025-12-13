@@ -296,14 +296,23 @@ public class ManagementServer {
 
     // Chat schließen
     private void handleCloseChat(MngMessage msg) throws Exception {
-        String user = msg.getData();
-        String partner = chatPartner.get(user);
+        String [] p = msg.getData().split(":");
+        String user = p[0];
+        String partner = p[1];
         if (partner == null) return;
 
         Socket to = activeClients.get(partner);
         if (to != null) {
-            to.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CLOSE_CHAT, user)));
+            to.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.DELETE_IP, user)));
             to.getOutputStream().flush();
+            System.out.println("Disconnect " + partner + " von " + user);
+        }
+
+        Socket target2 = activeClients.get(user);
+        if (target2 != null) {
+            target2.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.DELETE_IP, partner)));
+            target2.getOutputStream().flush();
+            System.out.println("Disconnect " + user + " von " + partner);
         }
 
         chatPartner.remove(user);

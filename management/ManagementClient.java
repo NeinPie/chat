@@ -38,7 +38,11 @@ public class ManagementClient {
                 byte[] recvData = new byte[1024];
                 DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
                 System.out.println("[CLIENT] WARTE_AUF_MESSAGE...");
-                partnersocket.receive(recvPacket);
+                try {
+                    partnersocket.receive(recvPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
                 MngMessage msg = MngCodec.decode(recvPacket.getData(), recvPacket.getLength());
                 if (msg.getType() == MngType.SEND_MESSAGE) {
@@ -220,29 +224,27 @@ public class ManagementClient {
 
                 if (msg.getType() == MngType.IP_ADRESSE) {
                     String[] p = msg.getData().split(":");
-                    System.out.println("225");
                     currentChatPartner = p[0]; 
                     System.out.println(currentChatPartner);
                     currentChatRequestFrom = null;
-                    System.out.println("229");
                     partnersocket = new DatagramSocket();
-                    System.out.println("231");
                     partnersocket.setSoTimeout(5000);
-                    System.out.println("233");
                     partnerIP = InetAddress.getByName("localhost");
-                    System.out.println("235");
                     partnerPort = Integer.parseInt(p[1]);
-                    System.out.println("237");
                     partnerMessageListener = new MessageListener();
-                    System.out.println("239");
                     System.out.println("[CLIENT] Verbindung zum Partner wurde aufgebaut.");
                 }
 
-                if (msg.getType() == MngType.CLOSE_CHAT) {
+                if (msg.getType() == MngType.DELETE_IP) {
                     currentChatPartner = null;
                     currentChatRequestFrom = null;
-                    disconnectToPartner();
+                    partnerMessageListener.interrupt();
+                    partnersocket.close();
+                    partnerIP = null;
+                    partnerPort = 0;
+                    System.out.println("[CLIENT] Verbindung zum Partner wurde getrennt.");
                 }
+                
                 if (msg.getType() == MngType.ABMELDUNG_OK) {
                     name = null;
                     currentChatPartner = null;
@@ -279,15 +281,6 @@ public class ManagementClient {
 
         System.out.println("Client beendet.");
     }
-
-    //beende Verbindung mit Partner
-    private void disconnectToPartner(){
-        partnerMessageListener.interrupt();
-        partnersocket.close();
-        partnerIP = null;
-        partnerPort = 0;
-    }
-
 
 
     public static void main(String[] args) throws Exception {
