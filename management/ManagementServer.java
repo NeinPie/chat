@@ -238,34 +238,39 @@ public class ManagementServer {
     
     // Chat akzeptieren
     private void handleChatAccept(MngMessage msg) throws Exception {
-        String from = msg.getData();
-        String to = chatPartner.get(from);
+        String [] p = msg.getData().split(":");
+        String from = p[0];
+        String to = p[1];
 
         if (to == null) return;
 
         Socket target = activeClients.get(to);
         if (target != null) {
-            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_OK, from + "9876")));
+            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.IP_ADRESSE, from + ":" +"9876")));
             target.getOutputStream().flush();
+            System.out.println("Sende IP an " + to);
         }
 
         Socket target2 = activeClients.get(from);
         if (target2 != null) {
-            target2.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_OK, to + "9876")));
+            target2.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.IP_ADRESSE, to + ":" + "9876")));
             target2.getOutputStream().flush();
+            System.out.println("Sende IP an " + from);
         }
     }
     
     // Chat ablehnen
     private void handleChatDecline(MngMessage msg) throws Exception {
-        String from = msg.getData();
-        String to = chatPartner.get(from);
+        String [] p = msg.getData().split(":");
+        String from = p[0];
+        String to = p[1];
+
 
         if (to == null) return;
 
-        Socket target = activeClients.get(to);
+        Socket target = activeClients.get(from);
         if (target != null) {
-            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_NOK, from)));
+            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATAUFFORDERUNG_ABGELEHNT, to)));
             target.getOutputStream().flush();
         }
 

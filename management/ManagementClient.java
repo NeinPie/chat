@@ -38,11 +38,7 @@ public class ManagementClient {
                 byte[] recvData = new byte[1024];
                 DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
                 System.out.println("[CLIENT] WARTE_AUF_MESSAGE...");
-                try {
-                    partnersocket.receive(recvPacket);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                partnersocket.receive(recvPacket);
 
                 MngMessage msg = MngCodec.decode(recvPacket.getData(), recvPacket.getLength());
                 if (msg.getType() == MngType.SEND_MESSAGE) {
@@ -56,6 +52,7 @@ public class ManagementClient {
                 try {
                     partnersocket.send(sendPacket);
                 } catch (IOException e) {
+                    System.out.println("ERROR ACK SENDEN FEHLGESCHLAGEN");
                     e.printStackTrace();
                 }
             }
@@ -119,6 +116,7 @@ public class ManagementClient {
                         send(MngType.CHATANFRAGE_OK, currentChatRequestFrom + ":" + name);
                         currentChatPartner = currentChatRequestFrom;   
                         currentChatRequestFrom = null;
+                        System.out.println("Chatanfrage angenommen");
                     } else {
                         System.out.println("Keine offene Chatanfrage.");
                     }
@@ -126,6 +124,7 @@ public class ManagementClient {
                 } else if (cmd.equals("/nok")) {
                     if (currentChatRequestFrom != null) {
                         send(MngType.CHATANFRAGE_NOK, currentChatRequestFrom + ":" + name);
+                        System.out.println("Chatanfrage abgelehnt");
                         currentChatRequestFrom = null;
                     } else {
                         System.out.println("Keine offene Chatanfrage.");
@@ -163,6 +162,7 @@ public class ManagementClient {
                         } catch (SocketTimeoutException e) {
                             System.out.println("[CLIENT] Timeout! Sende Message(" + message + ") erneut...");
                             partnersocket.send(sendPacket);
+                            versuche++;
                         }
                     }
                     if(versuche >= MAX_VERSUCHE){
@@ -218,13 +218,24 @@ public class ManagementClient {
                     currentChatRequestFrom = msg.getData();
                 }
 
-                if (msg.getType() == MngType.CHATANFRAGE_OK) {
+                if (msg.getType() == MngType.IP_ADRESSE) {
                     String[] p = msg.getData().split(":");
-                    currentChatPartner = p[1]; 
+                    System.out.println("225");
+                    currentChatPartner = p[0]; 
+                    System.out.println(currentChatPartner);
                     currentChatRequestFrom = null;
-                    DatagramSocket partnersocket = new DatagramSocket();
+                    System.out.println("229");
+                    partnersocket = new DatagramSocket();
+                    System.out.println("231");
                     partnersocket.setSoTimeout(5000);
-                    connectToPartner(InetAddress.getByName("localhost"), Integer.parseInt(p[2]));
+                    System.out.println("233");
+                    partnerIP = InetAddress.getByName("localhost");
+                    System.out.println("235");
+                    partnerPort = Integer.parseInt(p[1]);
+                    System.out.println("237");
+                    partnerMessageListener = new MessageListener();
+                    System.out.println("239");
+                    System.out.println("[CLIENT] Verbindung zum Partner wurde aufgebaut.");
                 }
 
                 if (msg.getType() == MngType.CLOSE_CHAT) {
@@ -236,6 +247,13 @@ public class ManagementClient {
                     name = null;
                     currentChatPartner = null;
                     currentChatRequestFrom = null;
+                }
+
+                if (msg.getType() == MngType.CHATAUFFORDERUNG_ABGELEHNT) {
+                    name = null;
+                    currentChatPartner = null;
+                    currentChatRequestFrom = null;
+                    System.out.println("Chatanfrage wurde abgelehnt");
                 }
 
                 System.out.println("\nSERVER | " + msg.getType() +
@@ -260,13 +278,6 @@ public class ManagementClient {
         catch (IOException ignored) {}
 
         System.out.println("Client beendet.");
-    }
-
-    //Aufbau Verbindung mit Partner
-    private void connectToPartner(InetAddress partnerIP, int partnerPort){
-        this.partnerIP = partnerIP;
-        this.partnerPort = partnerPort;
-        partnerMessageListener = new MessageListener();
     }
 
     //beende Verbindung mit Partner
