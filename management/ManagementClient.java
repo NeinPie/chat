@@ -1,11 +1,14 @@
 package management;
 
-import management.message.*;
-
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.Scanner;
+import management.message.*;
 
 public class ManagementClient {
 
@@ -23,13 +26,48 @@ public class ManagementClient {
     private Socket socket;
     private volatile boolean running = true;
 
+    private DatagramSocket partnersocket;
+    private InetAddress partnerIP;
+    private int partnerPort;
+    private MessageListener partnerMessageListener;
+
+    public class MessageListener extends Thread{
+       @Override
+        public void run(){
+            while(!isInterrupted()){
+                byte[] recvData = new byte[1024];
+                DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+                System.out.println("[CLIENT] WARTE_AUF_MESSAGE...");
+                try {
+                    partnersocket.receive(recvPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                MngMessage msg = MngCodec.decode(recvPacket.getData(), recvPacket.getLength());
+                if (msg.getType() == MngType.SEND_MESSAGE) {
+                    System.out.println("[CLIENT] Message von " + currentChatPartner + " erhalten:");
+                    System.out.println("    " + currentChatPartner + ": " + msg.getData());
+                }
+                MngSimpleMessage sendMessage = new MngSimpleMessage(MngType.SEND_MESSAGE_ACK, msg.getData());
+                byte[] sendData1 = MngCodec.encode(sendMessage);
+                DatagramPacket sendPacket = new DatagramPacket(sendData1, sendData1.length, partnerIP, partnerPort);
+                System.out.println("\n[CLIENT] SENDE_MESSAGE_ACK(" + msg.getData() + ") ...");
+                try {
+                    partnersocket.send(sendPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public ManagementClient(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
     public void start() throws Exception {
-
         socket = new Socket(host, port); // Verbindungsaufbau
 
         System.out.println("Willkommen zum Chat-Client!");
@@ -99,7 +137,37 @@ public class ManagementClient {
                         continue;
                     }
                     String message = cmd.substring(5);
-                    send(MngType.SEND_MESSAGE, name + ":" + currentChatPartner + ":" + message);
+                    //send(MngType.SEND_MESSAGE, name + ":" + currentChatPartner + ":" + message);
+                    MngSimpleMessage sendMessage = new MngSimpleMessage(MngType.SEND_MESSAGE, message);
+                    byte[] sendData1 = MngCodec.encode(sendMessage);
+                    DatagramPacket sendPacket = new DatagramPacket(sendData1, sendData1.length, partnerIP, partnerPort);
+                    System.out.println("\n[CLIENT] Zustand: WARTE_AUF_AUFRUF " + message);
+                    System.out.println("[CLIENT] SENDE_MESSAGE_(" + message + ") ...");
+                    partnersocket.send(sendPacket);
+
+                    int versuche = 0;
+                    final int MAX_VERSUCHE = 3;
+                    boolean korrektesPongErhalten = false;
+                    while (!korrektesPongErhalten && versuche < MAX_VERSUCHE) {
+                        try {
+                            byte[] recvData = new byte[1024];
+                            DatagramPacket recvPacket = new DatagramPacket(recvData, recvData.length);
+                            System.out.println("[CLIENT] WARTE_AUF_ACK(" + message + ") ...");
+                            partnersocket.receive(recvPacket);
+
+                            MngMessage msg = MngCodec.decode(recvPacket.getData(), recvPacket.getLength());
+                            if (msg.getType() == MngType.SEND_MESSAGE_ACK && msg.getData().equals(message)) {
+                                System.out.println("[CLIENT] Korrektes ACK(" + message + ") erhalten.");
+                                korrektesPongErhalten = true;
+                            }
+                        } catch (SocketTimeoutException e) {
+                            System.out.println("[CLIENT] Timeout! Sende Message(" + message + ") erneut...");
+                            partnersocket.send(sendPacket);
+                        }
+                    }
+                    if(versuche >= MAX_VERSUCHE){
+                        System.out.println("[CLIENT] Partner ist offline.");
+                    }
 
 
                 } else if (cmd.equals("/close")) {
@@ -154,11 +222,15 @@ public class ManagementClient {
                     String[] p = msg.getData().split(":");
                     currentChatPartner = p[1]; 
                     currentChatRequestFrom = null;
+                    DatagramSocket partnersocket = new DatagramSocket();
+                    partnersocket.setSoTimeout(5000);
+                    connectToPartner(InetAddress.getByName("localhost"), Integer.parseInt(p[2]));
                 }
 
                 if (msg.getType() == MngType.CLOSE_CHAT) {
                     currentChatPartner = null;
                     currentChatRequestFrom = null;
+                    disconnectToPartner();
                 }
                 if (msg.getType() == MngType.ABMELDUNG_OK) {
                     name = null;
@@ -189,6 +261,23 @@ public class ManagementClient {
 
         System.out.println("Client beendet.");
     }
+
+    //Aufbau Verbindung mit Partner
+    private void connectToPartner(InetAddress partnerIP, int partnerPort){
+        this.partnerIP = partnerIP;
+        this.partnerPort = partnerPort;
+        partnerMessageListener = new MessageListener();
+    }
+
+    //beende Verbindung mit Partner
+    private void disconnectToPartner(){
+        partnerMessageListener.interrupt();
+        partnersocket.close();
+        partnerIP = null;
+        partnerPort = 0;
+    }
+
+
 
     public static void main(String[] args) throws Exception {
         new ManagementClient("localhost", 9090).start();

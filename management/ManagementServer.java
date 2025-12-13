@@ -1,17 +1,16 @@
 package management;
 
-import management.message.*;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
+import management.message.*;
 
 public class ManagementServer {
 
@@ -171,30 +170,30 @@ public class ManagementServer {
     
     // Logout
     private void handleLogout(MngMessage msg, OutputStream out, Socket clientSocket) throws Exception {
-    String user = msg.getData();
+        String user = msg.getData();
 
-    if (activeClients.containsKey(user)) {
-        activeClients.remove(user);
+        if (activeClients.containsKey(user)) {
+            activeClients.remove(user);
 
-        if (clientSocket != null && !clientSocket.isClosed()) {
-            clientSocket.getOutputStream().write(MngCodec.encode(
-                    new MngSimpleMessage(MngType.ABMELDUNG_OK, "Logout ok:")
-            ));
-            clientSocket.getOutputStream().flush();
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.getOutputStream().write(MngCodec.encode(
+                        new MngSimpleMessage(MngType.ABMELDUNG_OK, "Logout ok:")
+                ));
+                clientSocket.getOutputStream().flush();
+            }
+
+            System.out.println("User logged out: " + user);
+        } else {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.getOutputStream().write(MngCodec.encode(
+                        new MngSimpleMessage(MngType.ABMELDUNG_NOK, "Logout fehlgeschlagen")
+                ));
+                clientSocket.getOutputStream().flush();
+            }
+
+            System.out.println("Logout failed: " + user);
         }
-
-        System.out.println("User logged out: " + user);
-    } else {
-        if (clientSocket != null && !clientSocket.isClosed()) {
-            clientSocket.getOutputStream().write(MngCodec.encode(
-                    new MngSimpleMessage(MngType.ABMELDUNG_NOK, "Logout fehlgeschlagen")
-            ));
-            clientSocket.getOutputStream().flush();
-        }
-
-        System.out.println("Logout failed: " + user);
     }
-}
 
 
     // Chat-Anfrage senden
@@ -246,8 +245,14 @@ public class ManagementServer {
 
         Socket target = activeClients.get(to);
         if (target != null) {
-            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_OK, from)));
+            target.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_OK, from + "9876")));
             target.getOutputStream().flush();
+        }
+
+        Socket target2 = activeClients.get(from);
+        if (target2 != null) {
+            target2.getOutputStream().write(MngCodec.encode(new MngSimpleMessage(MngType.CHATANFRAGE_OK, to + "9876")));
+            target2.getOutputStream().flush();
         }
     }
     

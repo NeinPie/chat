@@ -26,6 +26,7 @@ public enum MngType {
     CHATANFRAGE_NOK,
 
     SEND_MESSAGE,
+    SEND_MESSAGE_ACK,
 
     IP_ADRESSE,
 
